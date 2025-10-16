@@ -29,31 +29,33 @@ function Summarizer_page({ summary }) {
         .filter((point) => point.length > 0);
 
     return (
-        <div className="p-4 border border-indigo-200 rounded-lg shadow-sm">
-            <div className="font-semibold mb-2">Summary:</div>
-            <div className="text-sm">
-                {bulletPoints.length > 0 ? (
-                    <ol className="space-y-2">
-                        {bulletPoints.map((point, index) => (
-                            <li key={index} className="flex items-start">
-                                <span className="text-indigo-500 mr-3 font-semibold min-w-[24px]">
-                                    {index + 1}.
-                                </span>
-                                <span className="flex-1">
-                                    {point}
-                                    {index === bulletPoints.length - 1 &&
-                                        currentIndex < summary.length && (
-                                            <span className="inline-block w-1 h-4 bg-indigo-500 ml-1 animate-pulse" />
-                                        )}
-                                </span>
-                            </li>
-                        ))}
-                    </ol>
-                ) : (
-                    bulletPoints.map((point) => (
-                        <span className="flex-1">{point}</span>
-                    ))
-                )}
+        <div className="p-4 chat chat-start">
+            <div className="chat-bubble">
+                <div className="font-semibold mb-2">Summary:</div>
+                <div className="text-sm">
+                    {bulletPoints.length > 0 ? (
+                        <ol className="space-y-2">
+                            {bulletPoints.map((point, index) => (
+                                <li key={index} className="flex items-start">
+                                    <span className="text-indigo-500 mr-3 font-semibold min-w-[24px]">
+                                        {index + 1}.
+                                    </span>
+                                    <span className="flex-1">
+                                        {point}
+                                        {index === bulletPoints.length - 1 &&
+                                            currentIndex < summary.length && (
+                                                <span className="inline-block w-1 h-4 bg-indigo-500 ml-1 animate-pulse" />
+                                            )}
+                                    </span>
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        bulletPoints.map((point) => (
+                            <span className="flex-1">{point}</span>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );

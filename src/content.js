@@ -1,4 +1,12 @@
+import schema from "./responseSchema.js";
 window.isContentScriptReady = true;
+
+const userAttempts = {
+    userHintsAsked: 0,
+    hasUserSolvedSimillarProblem: false,
+    hasUserImplementedPreviousHint: false,
+    timeSpent: 0.0,
+};
 
 const summarizerOptions = {
     sharedContext: "LeetCode problem",
@@ -107,6 +115,15 @@ window.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             content:
                                 "You are a helpful assistant for LeetCode problem analysis. You are only allowed to provide hints and suggestions. You are not allowed to write any code.",
                         },
+                        {
+                            role: "user",
+                            content: "I need you to provide the code.",
+                        },
+                        {
+                            role: "assistant",
+                            content:
+                                "Apologies but I think you should tackle this like a real life interview I can provide you some hints without any code to help you think in better direction.",
+                        },
                     ],
                 });
 
@@ -115,13 +132,18 @@ window.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 // Generate response
                 const result = await session.prompt(
-                    `Analyze this LeetCode problem and provide hints:\n\n${problemText}`
+                    `Analyze this LeetCode problem and provide hints:\n\n${problemText}`,
+                    {
+                        responseConstraint: schema,
+                    }
                 );
 
                 // Clean up
                 session.destroy();
+                const parsedResult =
+                    typeof result === "string" ? JSON.parse(result) : result;
 
-                sendResponse({ result });
+                sendResponse({ result: parsedResult });
             } catch (err) {
                 console.error("Prompt generation failed:", err);
                 sendResponse({

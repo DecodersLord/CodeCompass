@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { IoMdSend } from "react-icons/io";
+import UserMessageContent from "./UserMessageContent.jsx";
 import Summarizer_page from "./Summarizer_page.jsx";
 import LoadingContent from "./LoadingContent.jsx";
+import ResponseMessageContent from "./ResponseMessageContent.jsx";
 import ErrorMessageContent from "./ErrorMessageContent.jsx";
+import codeCompassLogo from "./assets/CodeCompass - Horizontal.png";
 
 function App() {
     const [messages, setMessages] = useState([]);
@@ -73,6 +76,55 @@ function App() {
 
     async function handlePrompt() {
         setLoading(true);
+        setMessages((prev) => [
+            ...prev,
+            { type: "loading", content: "Generating Response...." },
+        ]);
+
+        try {
+            const [tab] = await window.chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            });
+
+            window.chrome.tabs.sendMessage(
+                tab.id,
+                { action: "GET_PROMPT" },
+                (response) => {
+                    if (window.chrome.runtime.lastError) {
+                        console.error(window.chrome.runtime.lastError.message);
+                        setMessages((prev) => [
+                            ...prev.slice(0, -1),
+                            {
+                                type: "error",
+                                content:
+                                    "Error: Please reload the page and try again",
+                            },
+                        ]);
+                    } else {
+                        setMessages((prev) => [
+                            ...prev.slice(0, -1),
+                            {
+                                type: "hints",
+                                content:
+                                    response?.result || "No hints available.",
+                            },
+                        ]);
+                    }
+                    setLoading(false);
+                }
+            );
+        } catch (err) {
+            console.error("Error:", err);
+            setMessages((prev) => [
+                ...prev.slice(0, -1),
+                {
+                    type: "error",
+                    content: err.message,
+                },
+            ]);
+            setLoading(false);
+        }
     }
 
     async function handleSummarize() {
@@ -149,15 +201,20 @@ function App() {
                     const { type, content } = message;
 
                     switch (type) {
+                        case "user":
+                            return <UserMessageContent message={content} />;
+
                         case "summary":
-                        case "hints":
                             return (
                                 <Summarizer_page
                                     key={index}
                                     summary={content}
                                 />
                             );
-
+                        case "hints":
+                            return (
+                                <ResponseMessageContent response={content} />
+                            );
                         case "error":
                             return <ErrorMessageContent message={content} />;
 
@@ -179,10 +236,7 @@ function App() {
     if (!isLeetCode) {
         return (
             <div className="w-full h-screen flex flex-col items-center justify-center p-6">
-                <div className="text-6xl mb-4">🧭</div>
-                <h1 className="text-2xl font-bold mb-4 text-indigo-600">
-                    Code Compass
-                </h1>
+                <img src={codeCompassLogo} />
                 <div className="text-center max-w-md">
                     <p className="text-gray-600 mb-4">
                         Navigate to a LeetCode problem to get started!
@@ -208,7 +262,7 @@ function App() {
     return (
         <div className="w-full h-screen flex flex-col">
             <div className="bg-base-300 rounded-lg flex flex-col items-center justify-center content-center">
-                <h1 className="text-2xl font-bold m-6">Code Compass</h1>
+                <img src={codeCompassLogo} className="rounded-lg w-full" />
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">{renderMessages()}</div>
