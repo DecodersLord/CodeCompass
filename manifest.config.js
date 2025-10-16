@@ -11,6 +11,15 @@ export default defineManifest({
             js: ["src/content.js"],
         },
     ],
+    icons: {
+        16: "public/CodeCompass - 16x16.png",
+        24: "public/CodeCompass - 24x24.png",
+        32: "public/CodeCompass - 32x32.png",
+        48: "public/CodeCompass - 48x48.png",
+        64: "public/CodeCompass - 64x64.png",
+        128: "public/CodeCompass - 128x128.png",
+        256: "public/CodeCompass - 256x256.png",
+    },
     action: {
         default_popup: "index.html",
         default_title: "CodeCompass",

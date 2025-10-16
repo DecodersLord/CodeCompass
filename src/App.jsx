@@ -280,7 +280,7 @@ function App() {
                 <datalist id="suggestions">
                     <option value=""></option>
                     <option value="Summarize"></option>
-                    <option value="Generate a Hints"></option>
+                    <option value="Generate Hints"></option>
                     <option value="Get Simillar problems"></option>
                 </datalist>
                 <button
