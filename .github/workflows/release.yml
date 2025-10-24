@@ -1,25 +1,94 @@
-name: Release
+name: Create Release
 
 on:
     push:
         tags:
             - "v*"
+
 permissions:
     contents: write
 
 jobs:
     release:
         runs-on: ubuntu-latest
+
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
               with:
                   node-version: "20.x"
-            - run: npm ci
-            - run: npm run build
-            - run: cd dist && zip -r ../extension.zip * && cd ..
-            - uses: softprops/action-gh-release@v1
+                  cache: "npm"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build extension
+              run: npm run build
+
+            - name: Verify build
+              run: |
+                  if [ ! -d "dist" ] || [ ! -f "dist/manifest.json" ]; then
+                    echo "❌ Build failed: dist folder or manifest.json not found"
+                    ls -la
+                    exit 1
+                  fi
+                  echo "✅ Build successful"
+                  echo "📦 Contents of dist:"
+                  ls -la dist/
+
+            - name: Create ZIP from dist folder only
+              run: |
+                  cd dist
+                  zip -r ../codecompass-${{ github.ref_name }}.zip .
+                  cd ..
+                  echo "✅ ZIP created"
+                  ls -lh codecompass-${{ github.ref_name }}.zip
+
+            - name: Extract version
+              id: version
+              run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v1
               with:
-                  files: extension.zip
+                  name: Code Compass ${{ github.ref_name }}
+                  body: |
+                      ## 🧭 Code Compass ${{ github.ref_name }}
+
+                      ### 📦 Installation
+
+                      1. **Download** `codecompass-${{ github.ref_name }}.zip` from assets below
+                      2. **Extract** the ZIP file
+                      3. **Open Chrome** and navigate to `chrome://extensions`
+                      4. **Enable** "Developer mode" (toggle in top-right)
+                      5. **Click** "Load unpacked" and select the extracted folder
+                      6. **Configure Chrome AI APIs**:
+                         - Go to `chrome://flags`
+                         - Enable: `#optimization-guide-on-device-model`
+                         - Enable: `#prompt-api-for-gemini-nano`
+                         - Enable: `#summarization-api-for-gemini-nano`
+                         - Restart Chrome
+                      7. **Test**: Visit https://leetcode.com/problems/two-sum/
+                      8. **Use**: Click extension icon, try "Get Adaptive Hints"
+
+                      ### ✨ What's New
+
+                      See commits since last release for detailed changes.
+
+                      ### 📋 Requirements
+
+                      - Chrome 121+ or Edge 121+
+                      - ~1.5GB free space (AI model download on first use)
+
+                      ### 🐛 Issues?
+
+                      Report bugs on [GitHub Issues](https://github.com/${{ github.repository }}/issues)
+                  files: |
+                      codecompass-${{ github.ref_name }}.zip
+                  draft: false
+                  prerelease: false
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
