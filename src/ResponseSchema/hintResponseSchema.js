@@ -1,3 +1,5 @@
+import analyseResponseSchema from "./analyseResponseSchema.js";
+
 const schema = {
     type: "object",
     title: "Personalized Problem-Solving Hints Framework",
@@ -29,42 +31,7 @@ const schema = {
             required: ["summary", "userUnderstanding"],
         },
 
-        userAnalysis: {
-            type: "object",
-            description:
-                "Quantify how far along the user is toward the correct solution and where they are stuck.",
-            properties: {
-                completion: {
-                    type: "integer",
-                    minimum: 0,
-                    maximum: 100,
-                    description:
-                        "Estimated completion percentage of user’s reasoning and logic correctness.",
-                },
-                stage: {
-                    type: "string",
-                    enum: [
-                        "not-started",
-                        "early-stage",
-                        "mid-progress",
-                        "near-solution",
-                        "optimization-phase",
-                    ],
-                    description: "Current coding or reasoning stage.",
-                },
-                detectedApproach: {
-                    type: "string",
-                    description:
-                        "Algorithmic pattern or technique inferred from the user's code (e.g., brute-force, DP, sliding window).",
-                },
-                mainIssue: {
-                    type: "string",
-                    description:
-                        "Biggest logical or conceptual issue preventing progress.",
-                },
-            },
-            required: ["completion", "stage"],
-        },
+        userAnalysis: analyseResponseSchema,
 
         steps: {
             type: "array",

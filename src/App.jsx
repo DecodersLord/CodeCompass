@@ -5,6 +5,7 @@ import SummarizerComponent from "./Components/SummarizerComponent.jsx";
 import LoadingComponent from "./Components/LoadingComponent.jsx";
 import ResponseMessageComponent from "./Components/ResponseMessageComponent.jsx";
 import ErrorMessageComponent from "./Components/ErrorMessageComponent.jsx";
+import RadialProgressComponent from "./Components/RadialProgressComponent.jsx";
 import codeCompassLogo from "./assets/CodeCompass - Horizontal.png";
 
 function App() {
@@ -65,8 +66,63 @@ function App() {
         ]);
         if (inputValue === "Summarize") {
             handleSummarize();
+        } else if (inputValue === "Check Progress") {
+            handleCheckProgress();
         } else {
             handlePrompt();
+        }
+    }
+
+    async function handleCheckProgress() {
+        setLoading(true);
+        setMessages((prev) => [
+            ...prev,
+            { type: "loading", content: "Generating Response...." },
+        ]);
+
+        try {
+            const [tab] = await window.chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            });
+
+            window.chrome.tabs.sendMessage(
+                tab.id,
+                { action: "GET_PROGRESS" },
+                (response) => {
+                    if (window.chrome.runtime.lastError) {
+                        console.error(window.chrome.runtime.lastError.message);
+                        setMessages((prev) => [
+                            ...prev.slice(0, -1),
+                            {
+                                type: "error",
+                                content:
+                                    "Error: Please reload the page and try again",
+                            },
+                        ]);
+                    } else {
+                        setMessages((prev) => [
+                            ...prev.slice(0, -1),
+                            {
+                                type: "progress",
+                                content:
+                                    response?.userAnalysis || "Not available.",
+                            },
+                        ]);
+                    }
+                    setLoading(false);
+                }
+            );
+        } catch (err) {
+            console.error("Error:", err);
+            setMessages((prev) => [
+                ...prev.slice(0, -1),
+                {
+                    type: "error",
+                    content: err.message,
+                },
+            ]);
+            setLoading(false);
         }
     }
 
@@ -85,7 +141,7 @@ function App() {
 
             window.chrome.tabs.sendMessage(
                 tab.id,
-                { action: "GET_PROMPT" },
+                { action: "GET_HINTS" },
                 (response) => {
                     if (window.chrome.runtime.lastError) {
                         console.error(window.chrome.runtime.lastError.message);
@@ -195,6 +251,7 @@ function App() {
             <div className="space-y-4">
                 {messages.map((message, index) => {
                     const { type, content } = message;
+                    let parsedContent;
 
                     switch (type) {
                         case "user":
@@ -208,8 +265,20 @@ function App() {
                                 />
                             );
                         case "hints":
+                            parsedContent = JSON.parse(content);
+
                             return (
-                                <ResponseMessageComponent response={content} />
+                                <ResponseMessageComponent
+                                    response={parsedContent}
+                                />
+                            );
+                        case "progress":
+                            parsedContent = JSON.parse(content);
+                            return (
+                                <RadialProgressComponent
+                                    method="analysis"
+                                    userAnalysis={parsedContent}
+                                />
                             );
                         case "error":
                             return <ErrorMessageComponent message={content} />;
@@ -285,6 +354,18 @@ function App() {
                         <span className="loading loading-spinner loading-sm"></span>
                     ) : (
                         "Get Hints"
+                    )}
+                </button>
+
+                <button
+                    className="btn btn-secondary"
+                    onClick={() => handleSend("Check Progress")}
+                    disabled={loading}
+                >
+                    {loading && activeAction === "Check Progress" ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                    ) : (
+                        "Check Progress"
                     )}
                 </button>
             </div>

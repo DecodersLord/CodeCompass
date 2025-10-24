@@ -29,6 +29,33 @@ const promptOptions = {
     },
 };
 
+function respond(sendResponse, key, value) {
+    try {
+        sendResponse({ [key]: value });
+    } catch (err) {
+        console.log("Failed to send response: ", err);
+    }
+}
+
+function logError(context, err) {
+    console.log(`${context}`, err.name, err.message);
+}
+
+async function ensureAPIAvailability(API, name) {
+    if (!API) {
+        throw new Error(
+            `${name} API not available. Enable Chrome AI APIs in chrome://flags`
+        );
+    }
+    const availability = await API.availability();
+    if (
+        availability.available === "no" ||
+        availability.available === "unknown"
+    ) {
+        throw new Error(`${name} not available on this device`);
+    }
+}
+
 function getProblemText() {
     const metaDescriptionEl = document.querySelector("meta[name=description]");
     const problemStatement =
@@ -48,76 +75,70 @@ function getUserCode() {
     return code;
 }
 
+async function summarize_problem(problemText) {
+    await ensureAPIAvailability(window.Summarizer, "Summarizer");
+
+    const summarizer = await window.Summarizer.create(summarizerOptions);
+    const summary = await summarizer.summarize(problemText);
+
+    summarizer.destroy();
+
+    return summary;
+}
+
+async function checkProgress(problemText, userCode, session) {
+    const currentUserStatus = await session.prompt(
+        `From the provided leetcode problem:\n\n ${problemText}\n
+                    and user's code: ${userCode}
+                    Analyse the current status of user's code towards solution.
+
+                    Expected output must match the JSON schema.`,
+        {
+            responseConstraint: analyseResponseSchema,
+        }
+    );
+
+    return currentUserStatus;
+}
+
+async function getHints(problemText, currentUserStatus, session) {
+    const result = await session.prompt(
+        `Based on this user analysis: ${JSON.stringify(
+            currentUserStatus
+        )}, and problem statement: ${problemText}
+         provide a series of adaptive hints and next steps. 
+         Output should follow this hint framework schema: 
+         problemUnderstanding + userAnalysis + steps + nextAction.`,
+        {
+            responseConstraint: schema,
+        }
+    );
+
+    return result;
+}
+
 window.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "GET_SUMMARY") {
-        (async () => {
-            try {
-                // Check if API is available
-                if (!window.Summarizer) {
-                    sendResponse({
-                        summary:
-                            "Summarizer API not available. Enable Chrome AI APIs in chrome://flags",
-                    });
-                    return;
-                }
+    // Get problem text
+    const problemText = getProblemText();
 
-                // Check availability
-                const availability = await window.Summarizer.availability();
-                if (
-                    availability.available === "no" ||
-                    availability.available === "unknown"
-                ) {
-                    sendResponse({
-                        summary: "Summarizer not available on this device",
-                    });
-                    return;
-                }
+    const userCode = getUserCode();
 
-                // Create summarizer
-                const summarizer = await window.Summarizer.create(
-                    summarizerOptions
+    (async () => {
+        try {
+            if (request.action === "GET_SUMMARY") {
+                const summary = await summarize_problem(
+                    problemText,
+                    sendResponse
                 );
-
-                // Get problem text and summarize
-                const problemText = getProblemText();
-                const summary = await summarizer.summarize(problemText);
-
-                // Clean up
-                summarizer.destroy();
-
-                sendResponse({ summary });
-            } catch (err) {
-                console.error("Summarization failed:", err);
-                sendResponse({
-                    summary: "Error: " + err.message,
-                });
-            }
-        })();
-
-        return true; // Keep channel open for async response
-    }
-
-    if (request.action === "GET_PROMPT") {
-        (async () => {
-            try {
-                // Check if API is available
-                if (!window.LanguageModel) {
-                    sendResponse({
-                        result: "Prompt API not available. Enable Chrome AI APIs in chrome://flags",
-                    });
-                    return;
-                }
-
-                // Check availability
-                const availability = await window.LanguageModel.availability();
-                if (availability.available === "no") {
-                    sendResponse({
-                        result: "Language model not available on this device",
-                    });
-                    return;
-                }
-
-                // Create session
+                respond(sendResponse, "summary", summary);
+            } else if (
+                request.action === "GET_HINTS" ||
+                request.action === "GET_PROGRESS"
+            ) {
+                await ensureAPIAvailability(
+                    window.LanguageModel,
+                    "LanguageModel"
+                );
                 const session = await window.LanguageModel.create({
                     promptOptions,
                     initialPrompts: [
@@ -138,48 +159,44 @@ window.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     ],
                 });
 
-                // Get problem text
-                const problemText = getProblemText();
+                try {
+                    const currentUserStatus = await checkProgress(
+                        problemText,
+                        userCode,
+                        session
+                    );
 
-                const userCode = getUserCode();
+                    if (request.action === "GET_HINTS") {
+                        const result = await getHints(
+                            problemText,
+                            currentUserStatus,
+                            session
+                        );
 
-                console.log("userCode", userCode);
-
-                const currentUserStatus = await session.prompt(
-                    `From the provided leetcode problem:\n\n ${problemText}\n
-                    and user's code: ${userCode}
-                    Analyse the current status of user's code towards solution.
-
-                    Expected output must match the JSON schema.`,
-                    {
-                        responseConstraint: analyseResponseSchema,
+                        respond(sendResponse, "result", result);
+                    } else {
+                        respond(
+                            sendResponse,
+                            "userAnalysis",
+                            currentUserStatus
+                        );
                     }
-                );
-
-                console.log("current user status: ", currentUserStatus);
-
-                // Generate response
-                const result = await session.prompt(
-                    `Analyze this LeetCode problem and provide hints:\n\n${problemText} based on user's current status: ${currentUserStatus}`,
-                    {
-                        responseConstraint: schema,
-                    }
-                );
-
-                // Clean up
-                session.destroy();
-                const parsedResult =
-                    typeof result === "string" ? JSON.parse(result) : result;
-
-                sendResponse({ result: parsedResult });
-            } catch (err) {
-                console.error("Prompt generation failed:", err);
-                sendResponse({
-                    result: "Error: " + err.message,
-                });
+                } finally {
+                    session.destroy();
+                }
+                return;
             }
-        })();
 
-        return true; // Keep channel open for async response
-    }
+            respond(
+                sendResponse,
+                "error",
+                "Unknown request action: " + request.action
+            );
+        } catch (err) {
+            logError("Message handler", err);
+            respond(sendResponse, "result", "Error: " + err.message);
+        }
+    })();
+
+    return true; // Keep channel open for async response
 });
