@@ -1,8 +1,24 @@
-import { React, useState, useEffect } from "react";
+import React from "react";
+import RadialProgressComponent from "./RadialProgressComponent.jsx";
+import StepsComponent from "./StepsComponent.jsx";
 
-function ResponseMessageContent({ response }) {
+function ResponseMessageComponent({ response }) {
     console.log(response);
     return (
+        <>
+            <div className="chat chat-start text-base py-2">
+                <RadialProgressComponent userAnalysis={response.userAnalysis} />
+                <div className="divider"></div>
+                <StepsComponent steps={response.steps} />
+                <div className="divider"></div>
+            </div>
+        </>
+    );
+}
+
+export default ResponseMessageComponent;
+{
+    /* 
         <div className="p-4 chat chat-start text-base">
             <div className="chat-bubble">
                 {response.steps.map((step, stepIndex) => (
@@ -33,8 +49,5 @@ function ResponseMessageContent({ response }) {
                     </div>
                 ))}
             </div>
-        </div>
-    );
+        </div> */
 }
-
-export default ResponseMessageContent;

@@ -1,6 +1,6 @@
 import React from "react";
 
-function ErrorMessageContent({ message }) {
+function ErrorMessageComponent({ message }) {
     return (
         <div role="alert" className="p-4 alert alert-error">
             <svg
@@ -21,4 +21,4 @@ function ErrorMessageContent({ message }) {
     );
 }
 
-export default ErrorMessageContent;
+export default ErrorMessageComponent;

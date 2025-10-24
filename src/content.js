@@ -1,4 +1,5 @@
-import schema from "./responseSchema.js";
+import schema from "./ResponseSchema/hintResponseSchema.js";
+import analyseResponseSchema from "./ResponseSchema/analyseResponseSchema.js";
 window.isContentScriptReady = true;
 
 const userAttempts = {
@@ -35,6 +36,16 @@ function getProblemText() {
         "No problem statement found.";
 
     return problemStatement;
+}
+
+function getUserCode() {
+    const userCurrentCodeContainer = document.querySelectorAll(".view-line");
+
+    const code = Array.from(userCurrentCodeContainer)
+        .map((line) => line.textContent || "") // Ensure textContent is not null
+        .join("\n");
+
+    return code;
 }
 
 window.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -130,9 +141,26 @@ window.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 // Get problem text
                 const problemText = getProblemText();
 
+                const userCode = getUserCode();
+
+                console.log("userCode", userCode);
+
+                const currentUserStatus = await session.prompt(
+                    `From the provided leetcode problem:\n\n ${problemText}\n
+                    and user's code: ${userCode}
+                    Analyse the current status of user's code towards solution.
+
+                    Expected output must match the JSON schema.`,
+                    {
+                        responseConstraint: analyseResponseSchema,
+                    }
+                );
+
+                console.log("current user status: ", currentUserStatus);
+
                 // Generate response
                 const result = await session.prompt(
-                    `Analyze this LeetCode problem and provide hints:\n\n${problemText}`,
+                    `Analyze this LeetCode problem and provide hints:\n\n${problemText} based on user's current status: ${currentUserStatus}`,
                     {
                         responseConstraint: schema,
                     }

@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // src/background.js
 console.log("Code Compass background worker loaded");
 

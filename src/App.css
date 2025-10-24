@@ -1,5 +1,1 @@
-@plugin "daisyui" {
-    themes: cupcake --default, dracula --prefersdark;
-    root: ":root";
-    logs: true;
-}
+

@@ -1,6 +1,6 @@
 import React from "react";
 
-function LoadingContent({ message }) {
+function LoadingComponent({ message }) {
     return (
         <div className="p-4 chat-response">
             <div className="chat-bubble">
@@ -13,4 +13,4 @@ function LoadingContent({ message }) {
     );
 }
 
-export default LoadingContent;
+export default LoadingComponent;

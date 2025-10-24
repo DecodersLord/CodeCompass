@@ -1,6 +1,6 @@
 import React from "react";
 
-function UserMessageContent({ message }) {
+function UserMessageComponent({ message }) {
     return (
         <div className="chat chat-end">
             <div className="chat-bubble text-base">{message}</div>
@@ -8,4 +8,4 @@ function UserMessageContent({ message }) {
     );
 }
 
-export default UserMessageContent;
+export default UserMessageComponent;
