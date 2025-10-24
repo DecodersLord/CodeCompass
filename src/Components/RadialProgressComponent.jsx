@@ -3,9 +3,9 @@ import React from "react";
 function RadialProgressComponent({ userAnalysis }) {
     return (
         <div className="card bg-neutral w-96 shadow-sm">
-            <figure className="pt-6 pb-4 bg-base-content">
+            <figure className="pt-6 pb-4 bg-base-100">
                 <div
-                    className="radial-progress text-primary"
+                    className="radial-progress bg-primary text-primary-content border-primary border-4"
                     style={
                         {
                             "--value": userAnalysis.completion,

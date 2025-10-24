@@ -3,11 +3,11 @@ import React from "react";
 function StepsComponent({ steps }) {
     console.log(steps);
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 ">
             {steps.map((step, stepIndex) => (
                 <div
                     key={stepIndex}
-                    className="collapse collapse-arrow bg-base-100 border border-base-300"
+                    className="collapse collapse-arrow bg-neutral border border-base-300"
                 >
                     <input
                         type="radio"
